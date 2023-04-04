@@ -6,7 +6,7 @@
 
 int main(int argc, char const *argv[]) {
     const char *serverIP = "127.0.0.1";
-    int portNum = 12345;
+    int portNum = 8080;
     
     // create socket
     int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -46,6 +46,6 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
     buffer[numBytesReceived] = '\0';
-    std::cout << "Received from server: " << buffer << std
+    std::cout << "Received from server: " << buffer << std::endl ;
 
 }
