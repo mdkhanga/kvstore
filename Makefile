@@ -12,14 +12,17 @@ all: server client
 $(SERVER): server.o
 	$(CC) $(LDFLAGS) server.o -o $@
 
-$(CLIENT): client.o
-	$(CC) $(LDFLAGS) client.o -o $@
+$(CLIENT): client.o SetMessage.o
+	$(CC) $(LDFLAGS) client.o SetMessage.o -o $@
 
 server.o:
 	$(CC) $(CFLAGS) server.cpp -o $@
 
 client.o:
 	$(CC) $(CFLAGS) client.cpp -o $@
+
+SetMessage.o:
+	$(CC) $(CFLAGS) SetMessage.cpp -o $@
 
 clean:
 	rm -rf $(OBJECTS) $(EXECUTABLES)
