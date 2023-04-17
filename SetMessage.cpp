@@ -48,10 +48,17 @@ SetMessage SetMessage::deserialize(const char* buffer) {
 
 
 
-int main() {
-	SetMessage s("key1", "value1") ;
+int main(int argc, char *argv[]) {
 
-	char buffer[40] ;
+	if (argc != 3) {
+		cout << "Usage: setm key value" << endl;
+		return 0;
+	}
+
+	// SetMessage s("key1", "value1") ;
+	SetMessage s(argv[1], argv[2]) ;
+
+	char buffer[256] ;
 
 	s.serialize(buffer);
 
