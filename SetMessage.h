@@ -1,4 +1,7 @@
-#include<string>
+#ifndef MYSETM_H
+#define MYSETM_H
+
+#include <string>
 
 using namespace std;
 
@@ -15,3 +18,5 @@ class SetMessage {
 		string value ;
 
 } ;
+
+#endif

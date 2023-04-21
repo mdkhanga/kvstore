@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include "foo.h"
 
 void handle_client(int client_socket) {
     // Read client requests
@@ -25,8 +26,9 @@ int main() {
     // Bind to port
     struct sockaddr_in server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_address.sin_port = htons(8080);
+    std::cout << server_address.sin_port << std::endl;
     bind(server_socket, (struct sockaddr*)&server_address, sizeof(server_address));
 
     // Listen for connections

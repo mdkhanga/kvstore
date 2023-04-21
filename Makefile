@@ -9,7 +9,7 @@ EXECUTABLES=$(SERVER) $(CLIENT)
 
 all: server client
     	
-$(SERVER): server.o
+$(SERVER): server.o SetMessage.o
 	$(CC) $(LDFLAGS) server.o -o $@
 
 $(CLIENT): client.o SetMessage.o
@@ -25,7 +25,7 @@ SetMessage.o:
 	$(CC) $(CFLAGS) SetMessage.cpp -o $@
 
 clean:
-	rm -rf $(OBJECTS) $(EXECUTABLES)
+	rm -rf $(OBJECTS) $(EXECUTABLES) SetMessage.o
 
 test:
 	echo "Hello world"

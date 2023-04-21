@@ -48,7 +48,7 @@ SetMessage SetMessage::deserialize(const char* buffer) {
 
 
 
-int main(int argc, char *argv[]) {
+/* int main(int argc, char *argv[]) {
 
 	if (argc != 3) {
 		cout << "Usage: setm key value" << endl;
@@ -65,5 +65,5 @@ int main(int argc, char *argv[]) {
 	SetMessage ds = s.deserialize(buffer);
 
 	cout << "key =" << ds.getKey() << endl;
-	cout << "value =" << ds.getValue() << endl;
-}
+	cout << "value =" << ds.getValue() << endl; 
+} */
