@@ -3,13 +3,17 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include "foo.h"
+#include "SetMessage.h"
 
 void handle_client(int client_socket) {
     // Read client requests
     char buffer[1024] = {0};
     int bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
-    std::cout << "Received " << bytes_read << " bytes: " << buffer << std::endl;
+     // std::cout << "Received " << bytes_read << " bytes: " << buffer << std::endl;
+     std::cout << "Received " << bytes_read << std::endl;
+    SetMessage s = SetMessage::deserialize(buffer); 
+    std::cout << "key = " << s.getKey() << std::endl ;
+    std::cout << "value = " << s.getValue() << std::endl ;
 
     // Send response
     const char* response = "Hello from server!";

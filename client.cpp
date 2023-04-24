@@ -2,7 +2,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include "foo.h"
+#include "SetMessage.h"
 
 int main(int argc, char const *argv[]) {
     const char *serverIP = "127.0.0.1";
@@ -19,9 +19,7 @@ int main(int argc, char const *argv[]) {
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(portNum);
-    std::cout << serverAddr.sin_port << std::endl;
     serverAddr.sin_addr.s_addr = inet_addr(serverIP);
-    std::cout << serverAddr.sin_addr.s_addr << std::endl;
     
     // connect to server
     int status = connect(clientSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
@@ -31,8 +29,15 @@ int main(int argc, char const *argv[]) {
     }
     
     // send data to server
-    const char *message = "Hello, server!";
-    int numBytesSent = send(clientSocket, message, strlen(message), 0);
+    // const char *message = "Hello, server!";
+    char message[1024];
+
+    SetMessage s("key1","value1");
+    s.serialize(message);
+
+
+    // int numBytesSent = send(clientSocket, message, strlen(message), 0);
+    int numBytesSent = send(clientSocket, message, 18, 0);
     if (numBytesSent == -1) {
         std::cerr << "Error sending data to server" << std::endl;
         close(clientSocket);

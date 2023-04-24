@@ -10,7 +10,7 @@ EXECUTABLES=$(SERVER) $(CLIENT)
 all: server client
     	
 $(SERVER): server.o SetMessage.o
-	$(CC) $(LDFLAGS) server.o -o $@
+	$(CC) $(LDFLAGS) server.o SetMessage.o -o $@
 
 $(CLIENT): client.o SetMessage.o
 	$(CC) $(LDFLAGS) client.o SetMessage.o -o $@

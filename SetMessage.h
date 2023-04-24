@@ -3,19 +3,17 @@
 
 #include <string>
 
-using namespace std;
-
 class SetMessage {
 	public:
-		SetMessage(string key, string value);
+		SetMessage(std::string key, std::string value);
 		~SetMessage();
 		void serialize(char* buffer);
 		static SetMessage deserialize(const char* buffer);
-		string getKey();
-		string getValue() ;
+		std::string getKey();
+		std::string getValue() ;
 	protected:
-		string key ;
-		string value ;
+		std::string key ;
+		std::string value ;
 
 } ;
 
