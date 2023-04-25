@@ -7,7 +7,7 @@ class SetMessage {
 	public:
 		SetMessage(std::string key, std::string value);
 		~SetMessage();
-		void serialize(char* buffer);
+		int serialize(char* buffer);
 		static SetMessage deserialize(const char* buffer);
 		std::string getKey();
 		std::string getValue() ;

@@ -7,6 +7,11 @@
 int main(int argc, char const *argv[]) {
     const char *serverIP = "127.0.0.1";
     int portNum = 8080;
+
+    if (argc != 3) {
+        std::cout << "Usage: client key value" << std::endl;
+        return 1;
+    }
     
     // create sockets
     int clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -32,12 +37,15 @@ int main(int argc, char const *argv[]) {
     // const char *message = "Hello, server!";
     char message[1024];
 
-    SetMessage s("key1","value1");
-    s.serialize(message);
+    // SetMessage s("key1","value1");
+    std::string key(argv[1]);
+    std::string value(argv[2]);
+    SetMessage s(key, value);
+    int bytes = s.serialize(message);
 
 
     // int numBytesSent = send(clientSocket, message, strlen(message), 0);
-    int numBytesSent = send(clientSocket, message, 18, 0);
+    int numBytesSent = send(clientSocket, message, bytes, 0);
     if (numBytesSent == -1) {
         std::cerr << "Error sending data to server" << std::endl;
         close(clientSocket);
