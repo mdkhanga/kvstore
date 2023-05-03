@@ -2,7 +2,6 @@ CC=g++
 CFLAGS=-std=c++11 -c -Wall
 LDFLAGS=
 SOURCES=server.cpp client.cpp
-OBJECTS=$(SOURCES:.cpp=.o)
 SERVER=server
 CLIENT=client
 EXECUTABLES=$(SERVER) $(CLIENT)
@@ -15,17 +14,11 @@ $(SERVER): server.o SetMessage.o
 $(CLIENT): client.o SetMessage.o
 	$(CC) $(LDFLAGS) client.o SetMessage.o -o $@
 
-server.o:
-	$(CC) $(CFLAGS) server.cpp -o $@
-
-client.o:
-	$(CC) $(CFLAGS) client.cpp -o $@
-
-SetMessage.o:
-	$(CC) $(CFLAGS) SetMessage.cpp -o $@
+%.o: %.cpp
+	$(CC) $< $(CFLAGS)
 
 clean:
-	rm -rf $(OBJECTS) $(EXECUTABLES) SetMessage.o
+	rm -rf *.o $(EXECUTABLES)
 
 test:
 	echo "Hello world"
