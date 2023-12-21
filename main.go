@@ -13,7 +13,7 @@ func main() {
 	router := gin.Default()
 	router.GET("/kvstore", getInfo)
 
-	router.Run("localhost:8080")
+	router.Run()
 }
 
 func getInfo(c *gin.Context) {
