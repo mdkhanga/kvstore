@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	m "example.com/models"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,6 +20,7 @@ func main() {
 	router := gin.Default()
 	router.GET("/kvstore", getInfo)
 	router.GET("/kvstore/:key", getValue)
+	router.POST("/kvstore", setValue)
 
 	router.Run()
 }
@@ -34,5 +37,8 @@ func getValue(c *gin.Context) {
 }
 
 func setValue(c *gin.Context) {
+	var input m.KeyValue
+	c.BindJSON(&input)
+	kvMap[input.Key] = input.Value
 	c.JSON(http.StatusOK, "Welcome to keystore")
 }
