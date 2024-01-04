@@ -1,11 +1,10 @@
-module examples.com/kvstore
+module github.com/mdkhanga/kvstore
 
 go 1.21.5
 
 require github.com/gin-gonic/gin v1.9.1
 
 require (
-	example.com/models v0.0.0-00010101000000-000000000000 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -32,4 +31,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace example.com/models => ./models
