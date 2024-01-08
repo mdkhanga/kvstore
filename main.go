@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	m "github.com/mdkhanga/kvstore/models"
+	server "github.com/mdkhanga/kvstore/tcpserver"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +23,9 @@ func main() {
 	router.GET("/kvstore/:key", getValue)
 	router.POST("/kvstore", setValue)
 
+	go server.Listen()
 	router.Run()
+
 }
 
 func getInfo(c *gin.Context) {
