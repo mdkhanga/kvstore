@@ -107,3 +107,27 @@ func (hr *HashRing) GetNode(key string) string {
 	nodeAfterRemoval := hr.GetNode(key)
 	fmt.Printf("After removing node '%s', key '%s' is mapped to node '%s'\n", nodeToRemove, key, nodeAfterRemoval)
 } */
+
+// AddNode adds a node to the hash ring with virtual nodes.
+func (hr *HashRing) AddNodeVirtualNode(node string, virtualNodes int) {
+	for i := 0; i < virtualNodes; i++ {
+		// Convert the replica number to a byte slice
+		replicaKey := []byte(strconv.Itoa(i))
+
+		// Append the node name to the replica key
+		replicaKey = append(replicaKey, []byte(node)...)
+
+		// Calculate the CRC32 hash of the byte slice
+		hash := crc32.ChecksumIEEE(replicaKey)
+
+		// Update data structures (same as before)
+		hr.nodes = append(hr.nodes, node)
+		hr.hashMap[hash] = node
+		hr.sortedHashes = append(hr.sortedHashes, hash)
+	}
+
+	// Sort the list of hashes in ascending order
+	sort.Slice(hr.sortedHashes, func(i, j int) bool {
+		return hr.sortedHashes[i] < hr.sortedHashes[j]
+	})
+}
