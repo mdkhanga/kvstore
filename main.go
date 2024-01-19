@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	m "github.com/mdkhanga/kvstore/models"
 	server "github.com/mdkhanga/kvstore/tcpserver"
@@ -14,6 +15,13 @@ var kvMap map[string]string
 
 func main() {
 	fmt.Println("Welcome to key value store")
+
+	argsWithProg := os.Args
+
+	fmt.Println(argsWithProg)
+	for i := 0; i < len(argsWithProg); i++ {
+		fmt.Println(argsWithProg[i])
+	}
 
 	kvMap = make(map[string]string)
 	kvMap["hello"] = "world"
