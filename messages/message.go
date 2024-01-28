@@ -3,6 +3,7 @@ package messages
 type Message struct {
 	id        int
 	operation int
+	data      *[]byte
 }
 
 type MessageType int16
