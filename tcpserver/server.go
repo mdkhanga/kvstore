@@ -5,16 +5,16 @@ import (
 	"net"
 )
 
-func Listen() {
+func Listen(port string) {
 
-	listener, err := net.Listen("tcp", ":8081")
+	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		fmt.Println("Error listening:", err)
 		return
 	}
 	defer listener.Close()
 
-	fmt.Println("Server listening on port 8081")
+	fmt.Println("Server listening on port " + port)
 
 	for {
 		// Accept a connection and handle it in a Goroutine

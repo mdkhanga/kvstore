@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func connect(hostport string) (net.Conn, error) {
+func Connect(hostport string) (net.Conn, error) {
 
 	fmt.Println("Connecting to " + hostport)
 

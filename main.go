@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -23,6 +24,15 @@ func main() {
 		fmt.Println(argsWithProg[i])
 	}
 
+	portPtr := flag.String("p", "8081", "tcp port to listenon")
+	seed := flag.String("seed", "", "ip of server to connect to")
+	httpPort := flag.String("h", "8080", "http port to listenon")
+
+	flag.Parse()
+	fmt.Println("Going to listen on port ", *portPtr)
+	fmt.Println("Seed to connect to ", *seed)
+	fmt.Println("Going to listen on http port ", *httpPort)
+
 	kvMap = make(map[string]string)
 	kvMap["hello"] = "world"
 
@@ -31,8 +41,8 @@ func main() {
 	router.GET("/kvstore/:key", getValue)
 	router.POST("/kvstore", setValue)
 
-	go server.Listen()
-	router.Run()
+	go server.Listen(*portPtr)
+	router.Run(":" + *httpPort)
 
 }
 
