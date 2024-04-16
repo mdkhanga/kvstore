@@ -9,12 +9,18 @@ func Connect(hostport string) (net.Conn, error) {
 
 	fmt.Println("Connecting to " + hostport)
 
-	conn, err := net.Dial("tcp", "localhost:8080")
+	conn, err := net.Dial("tcp", hostport)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
 	}
 
 	return conn, nil
+
+}
+
+func CallServer(hostport string) {
+
+	Connect(hostport)
 
 }
