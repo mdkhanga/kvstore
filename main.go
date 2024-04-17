@@ -7,6 +7,7 @@ import (
 	"os"
 
 	m "github.com/mdkhanga/kvstore/models"
+	client "github.com/mdkhanga/kvstore/tcpclient"
 	server "github.com/mdkhanga/kvstore/tcpserver"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,12 @@ func main() {
 	router.POST("/kvstore", setValue)
 
 	go server.Listen(*portPtr)
+
+	if *seed != "" {
+		fmt.Println("mjjjjjj Seed is not nill", *seed)
+		go client.CallServer(*seed)
+	}
+
 	router.Run(":" + *httpPort)
 
 }

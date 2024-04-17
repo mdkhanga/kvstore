@@ -21,6 +21,26 @@ func Connect(hostport string) (net.Conn, error) {
 
 func CallServer(hostport string) {
 
-	Connect(hostport)
+	conn, err := Connect(hostport)
+
+	for true {
+
+		message := "Hello, server!"
+		_, err = conn.Write([]byte(message))
+		if err != nil {
+			fmt.Println("Error sending message:", err)
+			return
+		}
+
+		// Receive and print the echoed message from the server
+		buffer := make([]byte, 1024)
+		n, err := conn.Read(buffer)
+		if err != nil {
+			fmt.Println("Error receiving message:", err)
+			return
+		}
+
+		fmt.Printf("Received from server: %s\n", buffer[:n])
+	}
 
 }
