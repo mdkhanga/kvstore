@@ -3,6 +3,7 @@ package tcpclient
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 func Connect(hostport string) (net.Conn, error) {
@@ -41,6 +42,8 @@ func CallServer(hostport string) {
 		}
 
 		fmt.Printf("Received from server: %s\n", buffer[:n])
+
+		time.Sleep(200 * time.Millisecond)
 	}
 
 }

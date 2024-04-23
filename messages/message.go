@@ -1,9 +1,8 @@
 package messages
 
 type Message struct {
-	id        int
-	operation int
-	data      *[]byte
+	Type MessageType
+	data *[]byte
 }
 
 type MessageType int16
@@ -13,3 +12,7 @@ const (
 	RESPONSE MessageType = 1
 	PING     MessageType = 2
 )
+
+func createPingMessage() *[]byte {
+
+}
