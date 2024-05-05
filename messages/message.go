@@ -14,6 +14,7 @@ type MessageType int16
 
 type Message interface {
 	Serialize() ([]byte, error)
+	Deserialize([]byte) (Message, error)
 }
 
 const (
@@ -22,7 +23,7 @@ const (
 	PING     MessageType = 2
 )
 
-func (message *PingMessage) serialize() ([]byte, error) {
+func (message *PingMessage) Serialize() ([]byte, error) {
 
 	buf := new(bytes.Buffer)
 
@@ -32,4 +33,9 @@ func (message *PingMessage) serialize() ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func (message *PingMessage) Deserialize([]byte) (*PingMessage, error) {
+
+	return nil, nil
 }

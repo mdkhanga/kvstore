@@ -45,7 +45,8 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		fmt.Printf("Received: %s", buffer[:n])
+		fmtString := fmt.Sprintf("Received: %s", buffer[:n])
+		fmt.Println(fmtString)
 
 		// Echo back to the client
 		conn.Write(buffer[:n])
