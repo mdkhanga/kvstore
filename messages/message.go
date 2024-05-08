@@ -7,7 +7,6 @@ import (
 
 type PingMessage struct {
 	Type MessageType
-	data *[]byte
 }
 
 type MessageType int16
@@ -35,7 +34,13 @@ func (message *PingMessage) Serialize() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (message *PingMessage) Deserialize([]byte) (*PingMessage, error) {
+func (message *PingMessage) Deserialize(data []byte) error {
 
-	return nil, nil
+	buf := bytes.NewReader(data)
+
+	if err := binary.Read(buf, binary.LittleEndian, message.Type); err != nil {
+		return err
+	}
+
+	return nil
 }
