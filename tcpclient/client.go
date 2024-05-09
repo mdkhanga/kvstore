@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"encoding/binary"
+
+	"github.com/mdkhanga/kvstore/messages"
 )
 
 func Connect(hostport string) (net.Conn, error) {
@@ -24,14 +28,34 @@ func CallServer(hostport string) {
 
 	conn, err := Connect(hostport)
 
+	if err != nil {
+		fmt.Println("Error sending message:", err)
+		return
+	}
+
 	for true {
 
-		message := "Hello, server!"
+		/* message := "Hello, server!"
 		_, err = conn.Write([]byte(message))
 		if err != nil {
 			fmt.Println("Error sending message:", err)
 			return
+		} */
+
+		msg := messages.PingMessage{Type: messages.PING}
+		data, err := msg.Serialize()
+
+		// Calculate the length of the serialized data
+		dataLength := len(data)
+
+		// Write the length of the byte array to the socket
+		if err := binary.Write(conn, binary.LittleEndian, int32(dataLength)); err != nil {
+			fmt.Println("Error writing data length to socket:", err)
+			return
 		}
+
+		// this might need be a loop. What is all data is not written
+		_, err = conn.Write(data)
 
 		// Receive and print the echoed message from the server
 		buffer := make([]byte, 1024)
