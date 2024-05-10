@@ -55,11 +55,19 @@ func CallServer(hostport string) {
 		}
 
 		// this might need be a loop. What is all data is not written
-		_, err = conn.Write(data)
+		n := dataLength
+
+		for n > 0 {
+			count, err := conn.Write(data)
+			if err != nil {
+				fmt.Println("Error writing data length to socket:", err)
+			}
+			n = n - count
+		}
 
 		// Receive and print the echoed message from the server
 		buffer := make([]byte, 1024)
-		n, err := conn.Read(buffer)
+		n, err = conn.Read(buffer)
 		if err != nil {
 			fmt.Println("Error receiving message:", err)
 			return
