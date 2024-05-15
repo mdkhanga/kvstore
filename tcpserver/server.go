@@ -1,8 +1,11 @@
 package tcpserver
 
 import (
+	"bytes"
 	"fmt"
 	"net"
+
+	"encoding/binary"
 )
 
 func Listen(port string) {
@@ -44,6 +47,9 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Error reading:", err)
 			return
 		}
+
+		var msglength int32
+		binary.Read(bytes.NewReader(byteArray[:4]), binary.BigEndian, &length)
 
 		fmtString := fmt.Sprintf("Received: %s", buffer[:n])
 		fmt.Println(fmtString)
