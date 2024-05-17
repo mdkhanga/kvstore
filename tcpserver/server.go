@@ -49,7 +49,9 @@ func handleConnection(conn net.Conn) {
 		}
 
 		var msglength int32
-		binary.Read(bytes.NewReader(byteArray[:4]), binary.BigEndian, &length)
+		binary.Read(bytes.NewReader(buffer[:4]), binary.BigEndian, &msglength)
+
+		dataBytes := byteArray[4 : 4+length]
 
 		fmtString := fmt.Sprintf("Received: %s", buffer[:n])
 		fmt.Println(fmtString)

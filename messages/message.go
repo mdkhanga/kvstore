@@ -44,3 +44,8 @@ func (message *PingMessage) Deserialize(data []byte) error {
 
 	return nil
 }
+
+func Deserialize(data []byte) (Message, error) {
+
+	return nil, nil
+}
