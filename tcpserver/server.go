@@ -6,6 +6,8 @@ import (
 	"net"
 
 	"encoding/binary"
+
+	"github.com/mdkhanga/kvstore/messages"
 )
 
 func Listen(port string) {
@@ -48,13 +50,32 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		var msglength int32
-		binary.Read(bytes.NewReader(buffer[:4]), binary.BigEndian, &msglength)
+		fmt.Println("Number of bytes read n=", n)
 
-		dataBytes := byteArray[4 : 4+length]
+		var msglength int16
+		binary.Read(bytes.NewReader(buffer[:2]), binary.LittleEndian, &msglength)
 
-		fmtString := fmt.Sprintf("Received: %s", buffer[:n])
-		fmt.Println(fmtString)
+		fmt.Println("Msglen=", msglength)
+
+		dataBytes := buffer[2 : 2+msglength]
+
+		message := messages.PingMessage{Type: messages.UNKNOWN}
+
+		err = message.Deserialize(dataBytes)
+
+		if err != nil {
+			fmt.Println("Error reading:", err)
+			return
+		}
+
+		if message.GetType() == messages.PING {
+			fmt.Println("Received a Ping message")
+		} else {
+			fmt.Println("Received a message of unknown type")
+		}
+
+		//fmtString := fmt.Sprintf("Received: %s", buffer[:n])
+		//fmt.Println(fmtString)
 
 		// Echo back to the client
 		conn.Write(buffer[:n])

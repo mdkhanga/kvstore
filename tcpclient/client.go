@@ -48,8 +48,10 @@ func CallServer(hostport string) {
 		// Calculate the length of the serialized data
 		dataLength := len(data)
 
+		fmt.Println("Length of data to write ", dataLength)
+
 		// Write the length of the byte array to the socket
-		if err := binary.Write(conn, binary.LittleEndian, int32(dataLength)); err != nil {
+		if err := binary.Write(conn, binary.LittleEndian, int16(dataLength)); err != nil {
 			fmt.Println("Error writing data length to socket:", err)
 			return
 		}
@@ -62,6 +64,7 @@ func CallServer(hostport string) {
 			if err != nil {
 				fmt.Println("Error writing data length to socket:", err)
 			}
+			fmt.Println("number of bytes written = ", count)
 			n = n - count
 		}
 
