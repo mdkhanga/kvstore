@@ -50,12 +50,8 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		fmt.Println("Number of bytes read n=", n)
-
 		var msglength int16
 		binary.Read(bytes.NewReader(buffer[:2]), binary.LittleEndian, &msglength)
-
-		fmt.Println("Msglen=", msglength)
 
 		dataBytes := buffer[2 : 2+msglength]
 
