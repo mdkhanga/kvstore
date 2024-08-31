@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package kvmessages ;
+
+option go_package = "github.com/kvstore/kvmessages";
+
+// The greeting service definition.
+service KVSevice {
+  // Sends a greeting
+  rpc ping(PingRequest) returns (PingResponse) {}
+
+}
+
+// The request message containing the user's name.
+message PingRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message PingResponse {
+  string message = 1;
+}
