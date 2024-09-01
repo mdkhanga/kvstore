@@ -13,10 +13,10 @@ service KVSevice {
 
 // The request message containing the user's name.
 message PingRequest {
-  string name = 1;
+  int32 hello = 1;
 }
 
 // The response message containing the greetings
 message PingResponse {
-  string message = 1;
+  int32 hello = 1;
 }
