@@ -1,6 +1,7 @@
 package tcpclient
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
@@ -8,6 +9,10 @@ import (
 	"encoding/binary"
 
 	"github.com/mdkhanga/kvstore/messages"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	pb "github.com/mdkhanga/kvstore/kvmessages"
 )
 
 func Connect(hostport string) (net.Conn, error) {
@@ -77,6 +82,59 @@ func CallServer(hostport string) {
 		// fmt.Printf("Received from server: %s\n", buffer[:n])
 
 		time.Sleep(1000 * time.Millisecond)
+	}
+
+}
+
+func CallGrpcServer(hostport string) {
+
+	fmt.Println(" Calling grpc server")
+
+	conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		fmt.Println("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	c := pb.NewKVSeviceClient(conn)
+	ctx := context.Background()
+	// defer cancel()
+
+	fmt.Println("Create KVclient")
+
+	var resp *pb.PingResponse
+	resp, err = c.Ping(ctx, &pb.PingRequest{Hello: 1})
+
+	if err != nil {
+		fmt.Println("got error on ping: %v", err)
+	}
+
+	fmt.Println("called ping")
+
+	if resp.Hello == 1 {
+		fmt.Println("Get Ping Response")
+	}
+
+	for true {
+
+		//r, err  = c.Ping(ctx, &pb.PingRequest{Hello : 1})
+
+		fmt.Println("Sending ping")
+		resp, err = c.Ping(ctx, &pb.PingRequest{Hello: 1})
+
+		if err != nil {
+			fmt.Println("got error on ping: %v", err)
+		} else {
+
+			fmt.Println("Got PingResponse", resp.Hello)
+		}
+
+		/* if resp.Hello == 1 {
+			fmt.Println("Get Ping Response")
+		} */
+
+		time.Sleep(1000 * time.Millisecond)
+
 	}
 
 }

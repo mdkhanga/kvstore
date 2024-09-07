@@ -6,14 +6,18 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/mdkhanga/kvstore/grpcserver"
 	m "github.com/mdkhanga/kvstore/models"
 	client "github.com/mdkhanga/kvstore/tcpclient"
-	server "github.com/mdkhanga/kvstore/tcpserver"
 
 	"github.com/gin-gonic/gin"
 )
 
 var kvMap map[string]string
+
+var (
+	port = flag.Int("port", 50051, "The server port")
+)
 
 func main() {
 	fmt.Println("Welcome to key value store")
@@ -42,11 +46,28 @@ func main() {
 	router.GET("/kvstore/:key", getValue)
 	router.POST("/kvstore", setValue)
 
-	go server.Listen(*portPtr)
+	// go server.Listen(*portPtr)
+	/* lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *portPtr))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+
+	s := grpc.NewServer()
+	pb.RegisterKVSeviceServer(s, &grpcserver.Server{})
+	log.Printf("server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	} *
+
+	*/
+
+	go grpcserver.StartGrpcServer(portPtr)
 
 	if *seed != "" {
 		fmt.Println("mjjjjjj Seed is not nill", *seed)
-		go client.CallServer(*seed)
+		// go client.CallServer(*seed)
+		go client.CallGrpcServer(*seed)
 	}
 
 	router.Run(":" + *httpPort)
