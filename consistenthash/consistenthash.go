@@ -1,133 +1,90 @@
 package consistenthash
 
 import (
-	"hash/crc32"
-	"sort"
-	"strconv"
+	"hash/fnv"
+	"sync"
 )
 
-// HashRing represents the consistent hash ring.
-type HashRing struct {
-	nodes        []string
-	replicas     int
-	hashMap      map[uint32]string
-	sortedHashes []uint32
+type Node struct {
+	ID string
 }
 
-// NewHashRing creates a new HashRing.
-func NewHashRing(replicas int) *HashRing {
-	return &HashRing{
-		replicas: replicas,
-		hashMap:  make(map[uint32]string),
-	}
+type VirtualNode struct {
+	ID     int
+	NodeID string
 }
 
-// AddNode adds a node to the hash ring.
-func (hr *HashRing) AddNode(node string) {
-	for i := 0; i < hr.replicas; i++ {
-		replicaKey := strconv.Itoa(i) + node
-		hash := crc32.ChecksumIEEE([]byte(replicaKey))
-		hr.nodes = append(hr.nodes, node)
-		hr.hashMap[hash] = node
-		hr.sortedHashes = append(hr.sortedHashes, hash)
+type ConsistentHash struct {
+	nodes        map[string]Node
+	virtualNodes []VirtualNode
+	totalVNodes  int
+	mu           sync.RWMutex
+}
+
+func NewConsistentHash(totalVNodes int) *ConsistentHash {
+	ch := &ConsistentHash{
+		nodes:        make(map[string]Node),
+		virtualNodes: make([]VirtualNode, totalVNodes),
+		totalVNodes:  totalVNodes,
 	}
 
-	sort.Slice(hr.sortedHashes, func(i, j int) bool {
-		return hr.sortedHashes[i] < hr.sortedHashes[j]
-	})
+	for i := 0; i < totalVNodes; i++ {
+		ch.virtualNodes[i] = VirtualNode{ID: i, NodeID: ""}
+	}
+	return ch
 }
 
-// RemoveNode removes a node from the hash ring.
-func (hr *HashRing) RemoveNode(node string) {
-	for i := 0; i < hr.replicas; i++ {
-		replicaKey := strconv.Itoa(i) + node
-		hash := crc32.ChecksumIEEE([]byte(replicaKey))
+func (ch *ConsistentHash) AddNode(node Node) {
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
 
-		// Find and remove the hash entry
-		for j, h := range hr.sortedHashes {
-			if h == hash {
-				hr.sortedHashes = append(hr.sortedHashes[:j], hr.sortedHashes[j+1:]...)
-				break
-			}
+	ch.nodes[node.ID] = node
+	ch.redistributeVNodes()
+}
+
+func (ch *ConsistentHash) RemoveNode(nodeID string) {
+	ch.mu.Lock()
+	defer ch.mu.Unlock()
+
+	delete(ch.nodes, nodeID)
+	ch.redistributeVNodes()
+}
+
+func (ch *ConsistentHash) redistributeVNodes() {
+	if len(ch.nodes) == 0 {
+		for i := range ch.virtualNodes {
+			ch.virtualNodes[i].NodeID = ""
 		}
-
-		// Remove the node entry
-		delete(hr.hashMap, hash)
+		return
 	}
 
-	// Remove the node from the list
-	for i, n := range hr.nodes {
-		if n == node {
-			hr.nodes = append(hr.nodes[:i], hr.nodes[i+1:]...)
-			break
-		}
+	nodeIDs := make([]string, 0, len(ch.nodes))
+	for id := range ch.nodes {
+		nodeIDs = append(nodeIDs, id)
+	}
+
+	for i := range ch.virtualNodes {
+		nodeIndex := i % len(nodeIDs)
+		ch.virtualNodes[i].NodeID = nodeIDs[nodeIndex]
 	}
 }
 
-// GetNode returns the node to which the key is mapped.
-func (hr *HashRing) GetNode(key string) string {
-	if len(hr.nodes) == 0 {
+func (ch *ConsistentHash) GetNode(key string) string {
+	ch.mu.RLock()
+	defer ch.mu.RUnlock()
+
+	if len(ch.nodes) == 0 {
 		return ""
 	}
 
-	hash := crc32.ChecksumIEEE([]byte(key))
+	hash := ch.hash(key)
+	idx := hash % ch.totalVNodes
 
-	// Binary search for the node with the smallest hash greater than or equal to the key's hash
-	idx := sort.Search(len(hr.sortedHashes), func(i int) bool {
-		return hr.sortedHashes[i] >= hash
-	})
-
-	// Wrap around if needed
-	if idx == len(hr.sortedHashes) {
-		idx = 0
-	}
-
-	return hr.hashMap[hr.sortedHashes[idx]]
+	return ch.virtualNodes[idx].NodeID
 }
 
-/* func main() {
-	// Create a new HashRing with 3 replicas
-	hr := NewHashRing(3)
-
-	// Add nodes to the hash ring
-	hr.AddNode("server1")
-	hr.AddNode("server2")
-	hr.AddNode("server3")
-
-	// Get node for a key
-	key := "some_key"
-	node := hr.GetNode(key)
-	fmt.Printf("Key '%s' is mapped to node '%s'\n", key, node)
-
-	// Remove a node from the hash ring
-	nodeToRemove := "server2"
-	hr.RemoveNode(nodeToRemove)
-
-	// Get node for the same key after removing a node
-	nodeAfterRemoval := hr.GetNode(key)
-	fmt.Printf("After removing node '%s', key '%s' is mapped to node '%s'\n", nodeToRemove, key, nodeAfterRemoval)
-} */
-
-// AddNode adds a node to the hash ring with virtual nodes.
-func (hr *HashRing) AddNodeVirtualNode(node string, virtualNodes int) {
-	for i := 0; i < virtualNodes; i++ {
-		// Convert the replica number to a byte slice
-		replicaKey := []byte(strconv.Itoa(i))
-
-		// Append the node name to the replica key
-		replicaKey = append(replicaKey, []byte(node)...)
-
-		// Calculate the CRC32 hash of the byte slice
-		hash := crc32.ChecksumIEEE(replicaKey)
-
-		// Update data structures (same as before)
-		hr.nodes = append(hr.nodes, node)
-		hr.hashMap[hash] = node
-		hr.sortedHashes = append(hr.sortedHashes, hash)
-	}
-
-	// Sort the list of hashes in ascending order
-	sort.Slice(hr.sortedHashes, func(i, j int) bool {
-		return hr.sortedHashes[i] < hr.sortedHashes[j]
-	})
+func (ch *ConsistentHash) hash(key string) int {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return int(h.Sum32())
 }
