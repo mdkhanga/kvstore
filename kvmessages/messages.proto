@@ -8,7 +8,7 @@ option go_package = "github.com/kvstore/kvmessages";
 service KVSevice {
   // Sends a greeting
   rpc ping(PingRequest) returns (PingResponse) {}
-
+  rpc Communicate(stream ServerMessage) returns (stream ServerMessage) {}
 }
 
 // The request message containing the user's name.
@@ -19,4 +19,24 @@ message PingRequest {
 // The response message containing the greetings
 message PingResponse {
   int32 hello = 1;
+}
+
+message KeyValueMessage {
+  string key = 1;
+  string value = 2;
+}
+
+enum MessageType {
+  PING = 0;
+  PING_RESPONSE=1;
+  KEY_VALUE = 2;
+}
+
+message ServerMessage {
+  MessageType type = 1;
+  oneof content {
+    PingRequest ping = 2;
+    PingResponse ping_response = 3;
+    KeyValueMessage key_value = 4;
+  }
 }

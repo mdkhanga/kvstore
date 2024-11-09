@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	KVSevice_Ping_FullMethodName = "/kvmessages.KVSevice/ping"
+	KVSevice_Ping_FullMethodName        = "/kvmessages.KVSevice/ping"
+	KVSevice_Communicate_FullMethodName = "/kvmessages.KVSevice/Communicate"
 )
 
 // KVSeviceClient is the client API for KVSevice service.
@@ -30,6 +31,7 @@ const (
 type KVSeviceClient interface {
 	// Sends a greeting
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	Communicate(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ServerMessage, ServerMessage], error)
 }
 
 type kVSeviceClient struct {
@@ -50,6 +52,19 @@ func (c *kVSeviceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *kVSeviceClient) Communicate(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ServerMessage, ServerMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &KVSevice_ServiceDesc.Streams[0], KVSevice_Communicate_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ServerMessage, ServerMessage]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type KVSevice_CommunicateClient = grpc.BidiStreamingClient[ServerMessage, ServerMessage]
+
 // KVSeviceServer is the server API for KVSevice service.
 // All implementations must embed UnimplementedKVSeviceServer
 // for forward compatibility.
@@ -58,6 +73,7 @@ func (c *kVSeviceClient) Ping(ctx context.Context, in *PingRequest, opts ...grpc
 type KVSeviceServer interface {
 	// Sends a greeting
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	Communicate(grpc.BidiStreamingServer[ServerMessage, ServerMessage]) error
 	mustEmbedUnimplementedKVSeviceServer()
 }
 
@@ -70,6 +86,9 @@ type UnimplementedKVSeviceServer struct{}
 
 func (UnimplementedKVSeviceServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedKVSeviceServer) Communicate(grpc.BidiStreamingServer[ServerMessage, ServerMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method Communicate not implemented")
 }
 func (UnimplementedKVSeviceServer) mustEmbedUnimplementedKVSeviceServer() {}
 func (UnimplementedKVSeviceServer) testEmbeddedByValue()                  {}
@@ -110,6 +129,13 @@ func _KVSevice_Ping_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _KVSevice_Communicate_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(KVSeviceServer).Communicate(&grpc.GenericServerStream[ServerMessage, ServerMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type KVSevice_CommunicateServer = grpc.BidiStreamingServer[ServerMessage, ServerMessage]
+
 // KVSevice_ServiceDesc is the grpc.ServiceDesc for KVSevice service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -122,6 +148,13 @@ var KVSevice_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _KVSevice_Ping_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Communicate",
+			Handler:       _KVSevice_Communicate_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "kvmessages/messages.proto",
 }
