@@ -8,7 +8,9 @@ import (
 
 	"github.com/mdkhanga/kvstore/grpcserver"
 	m "github.com/mdkhanga/kvstore/models"
-	client "github.com/mdkhanga/kvstore/tcpclient"
+
+	// client "github.com/mdkhanga/kvstore/tcpclient"
+	client "github.com/mdkhanga/kvstore/grpcclient"
 
 	"github.com/gin-gonic/gin"
 )
