@@ -3,6 +3,7 @@ package tcpclient
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -115,23 +116,42 @@ func CallGrpcServer(hostport string) {
 		fmt.Println("Get Ping Response")
 	}
 
+	stream, err := c.Communicate(ctx)
+	if err != nil {
+		fmt.Println("Error getting bidirectinal strem")
+	}
+
 	for true {
 
-		//r, err  = c.Ping(ctx, &pb.PingRequest{Hello : 1})
-
 		fmt.Println("Sending ping")
-		resp, err = c.Ping(ctx, &pb.PingRequest{Hello: 1})
-
+		// resp, err = c.Ping(ctx, &pb.PingRequest{Hello: 1})
+		err := stream.Send(&pb.ServerMessage{
+			Type: pb.MessageType_PING,
+			Content: &pb.ServerMessage_Ping{
+				Ping: &pb.PingRequest{Hello: 1},
+			},
+		})
 		if err != nil {
+			fmt.Println("Error sending Ping message: %v", err)
+			return
+		}
+
+		/* if err != nil {
 			fmt.Println("got error on ping: %v", err)
 		} else {
 
 			fmt.Println("Got PingResponse", resp.Hello)
-		}
-
-		/* if resp.Hello == 1 {
-			fmt.Println("Get Ping Response")
 		} */
+
+		in, err := stream.Recv()
+		if err != nil {
+			log.Printf("Error receiving message: %v", err)
+			return
+		}
+		log.Printf("Received message of type: %v", in.Type)
+		if in.Type == pb.MessageType_PING_RESPONSE {
+			fmt.Println("Received Ping message from the stream ", in.GetPingResponse().Hello)
+		}
 
 		time.Sleep(1000 * time.Millisecond)
 

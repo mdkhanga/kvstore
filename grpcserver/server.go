@@ -66,6 +66,9 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 				return
 			}
 			log.Printf("Received message of type: %v", in.Type)
+			if in.Type == pb.MessageType_PING {
+				fmt.Println("Received Ping message from the stream ", in.GetPing().Hello)
+			}
 			messageQueue.Enqueue(in)
 		}
 	}()
