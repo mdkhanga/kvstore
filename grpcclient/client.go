@@ -9,7 +9,9 @@ import (
 
 	pb "github.com/mdkhanga/kvstore/kvmessages"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	status "google.golang.org/grpc/status"
 )
 
 // Queue to hold incoming messages
@@ -105,33 +107,54 @@ func CallGrpcServer(hostport string) {
 
 func CallGrpcServerv2(hostport string) {
 
-	fmt.Println(" Calling grpc server")
+	for {
 
-	conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		fmt.Println("did not connect: %v", err)
+		fmt.Println(" Calling grpc server")
+
+		conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Printf("did not connect: %v", err)
+			log.Println("Sleep for 5 sec and try again")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		defer conn.Close()
+
+		c := pb.NewKVSeviceClient(conn)
+		ctx := context.Background()
+		// defer cancel()
+
+		fmt.Println("Create KVclient")
+
+		stream, err := c.Communicate(ctx)
+		if err != nil {
+			fmt.Println("Error getting bidirectinal strem")
+			conn.Close()
+			log.Println("Sleep for 5 sec and try again")
+			time.Sleep(5 * time.Second)
+			continue
+
+		}
+
+		sendMessageQueue := &MessageQueue{}
+		receiveMessageQueue := &MessageQueue{}
+
+		stopChan := make(chan struct{})
+
+		go sendLoop(stream, sendMessageQueue, stopChan)
+
+		go receiveLoop(stream, receiveMessageQueue, stopChan)
+
+		<-stopChan
+		log.Println("Stopping message processing due to stream error")
+		stream.CloseSend()
+		conn.Close()
+		log.Println("Sleep for 5 sec and try again")
+		time.Sleep(5 * time.Second)
+
 	}
-	defer conn.Close()
 
-	c := pb.NewKVSeviceClient(conn)
-	ctx := context.Background()
-	// defer cancel()
-
-	fmt.Println("Create KVclient")
-
-	stream, err := c.Communicate(ctx)
-	if err != nil {
-		fmt.Println("Error getting bidirectinal strem")
-	}
-
-	sendMessageQueue := &MessageQueue{}
-	receiveMessageQueue := &MessageQueue{}
-
-	go sendLoop(stream, sendMessageQueue)
-
-	go receiveLoop(stream, receiveMessageQueue)
-
-	for true {
+	/* for true {
 
 		fmt.Println("Sending ping")
 
@@ -146,36 +169,65 @@ func CallGrpcServerv2(hostport string) {
 
 		time.Sleep(5000 * time.Millisecond)
 
-	}
+	} */
 
 }
 
-func sendLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue) {
+func sendLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue, stopChan chan struct{}) {
 
 	for {
-		msg := messageQueue.Dequeue()
-		if msg == nil {
-			time.Sleep(1 * time.Second) // Wait before checking again
-			continue
+
+		select {
+
+		case <-stopChan:
+			log.Println("Stopping send goroutine ..")
+			return
+
+		default:
+			/* msg := messageQueue.Dequeue()
+			if msg == nil {
+				time.Sleep(1 * time.Second) // Wait before checking again
+				continue
+			} */
+
+			msg := &pb.ServerMessage{
+				Type: pb.MessageType_PING,
+				Content: &pb.ServerMessage_Ping{
+					Ping: &pb.PingRequest{Hello: 1},
+				},
+			}
+
+			log.Printf("Dequed Sending message of type: %v", msg.Type)
+			err := stream.Send(msg)
+			if err != nil {
+				log.Printf("Error sending message: %v", err)
+				close(stopChan)
+				return
+			}
+
 		}
 
-		log.Printf("Dequed Sending message of type: %v", msg.Type)
-		err := stream.Send(msg)
-		if err != nil {
-			log.Printf("Error sending message: %v", err)
-			continue
-		}
+		time.Sleep(5 * time.Second)
+
 	}
 }
 
-func receiveLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue) error {
+func receiveLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue, stopChan chan struct{}) {
 
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
 
-			log.Printf("Error receiving message: %v", err)
-			continue
+			code := status.Code(err)
+
+			if code == codes.Unavailable || code == codes.Canceled || code == codes.DeadlineExceeded {
+
+				log.Println("Unable to read from the stream. server seems unavailable")
+				close(stopChan)
+				return
+
+			}
+
 		}
 		log.Printf("Received message of type: %v", msg.Type)
 
@@ -189,6 +241,7 @@ func receiveLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueu
 
 }
 
+/*
 func CallGrpcServerv3(hostport string) {
 
 	fmt.Println(" Calling grpc server")
@@ -235,3 +288,4 @@ func CallGrpcServerv3(hostport string) {
 	}
 
 }
+*/
