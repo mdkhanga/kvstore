@@ -69,7 +69,8 @@ func main() {
 	if *seed != "" {
 		fmt.Println("mjjjjjj Seed is not nill", *seed)
 		// go client.CallServer(*seed)
-		go client.CallGrpcServer(*seed)
+		// go client.CallGrpcServer(*seed)
+		go client.CallGrpcServerv2(*seed)
 	}
 
 	router.Run(":" + *httpPort)

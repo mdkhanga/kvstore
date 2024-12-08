@@ -70,6 +70,7 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 				fmt.Println("Received Ping message from the stream ", in.GetPing().Hello)
 			}
 			messageQueue.Enqueue(in)
+			log.Printf("Server Queue length %d", len(messageQueue.messages))
 		}
 	}()
 
@@ -106,6 +107,7 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 					return
 				}
 			}
+
 		}
 	}()
 

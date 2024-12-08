@@ -4,12 +4,38 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	pb "github.com/mdkhanga/kvstore/kvmessages"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+// Queue to hold incoming messages
+type MessageQueue struct {
+	messages []*pb.ServerMessage
+	mu       sync.Mutex
+}
+
+// Enqueue adds a message to the queue
+func (q *MessageQueue) Enqueue(msg *pb.ServerMessage) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	q.messages = append(q.messages, msg)
+}
+
+// Dequeue removes and returns the oldest message from the queue
+func (q *MessageQueue) Dequeue() *pb.ServerMessage {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if len(q.messages) == 0 {
+		return nil
+	}
+	msg := q.messages[0]
+	q.messages = q.messages[1:]
+	return msg
+}
 
 func CallGrpcServer(hostport string) {
 
@@ -43,6 +69,7 @@ func CallGrpcServer(hostport string) {
 	stream, err := c.Communicate(ctx)
 	if err != nil {
 		fmt.Println("Error getting bidirectinal strem")
+		return
 	}
 
 	for true {
@@ -71,6 +98,139 @@ func CallGrpcServer(hostport string) {
 		}
 
 		time.Sleep(1000 * time.Millisecond)
+
+	}
+
+}
+
+func CallGrpcServerv2(hostport string) {
+
+	fmt.Println(" Calling grpc server")
+
+	conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		fmt.Println("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	c := pb.NewKVSeviceClient(conn)
+	ctx := context.Background()
+	// defer cancel()
+
+	fmt.Println("Create KVclient")
+
+	stream, err := c.Communicate(ctx)
+	if err != nil {
+		fmt.Println("Error getting bidirectinal strem")
+	}
+
+	sendMessageQueue := &MessageQueue{}
+	receiveMessageQueue := &MessageQueue{}
+
+	go sendLoop(stream, sendMessageQueue)
+
+	go receiveLoop(stream, receiveMessageQueue)
+
+	for true {
+
+		fmt.Println("Sending ping")
+
+		sendMessageQueue.Enqueue(&pb.ServerMessage{
+			Type: pb.MessageType_PING,
+			Content: &pb.ServerMessage_Ping{
+				Ping: &pb.PingRequest{Hello: 1},
+			},
+		})
+
+		log.Printf("Server Queue length %d", len(sendMessageQueue.messages))
+
+		time.Sleep(5000 * time.Millisecond)
+
+	}
+
+}
+
+func sendLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue) {
+
+	for {
+		msg := messageQueue.Dequeue()
+		if msg == nil {
+			time.Sleep(1 * time.Second) // Wait before checking again
+			continue
+		}
+
+		log.Printf("Dequed Sending message of type: %v", msg.Type)
+		err := stream.Send(msg)
+		if err != nil {
+			log.Printf("Error sending message: %v", err)
+			continue
+		}
+	}
+}
+
+func receiveLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue) error {
+
+	for {
+		msg, err := stream.Recv()
+		if err != nil {
+
+			log.Printf("Error receiving message: %v", err)
+			continue
+		}
+		log.Printf("Received message of type: %v", msg.Type)
+
+		if msg.Type == pb.MessageType_PING_RESPONSE {
+			fmt.Println("Received Ping message from the stream ", msg.GetPingResponse().Hello)
+		}
+
+		// For now do nothing with the msg
+		// messageQueue.Enqueue(msg)
+	}
+
+}
+
+func CallGrpcServerv3(hostport string) {
+
+	fmt.Println(" Calling grpc server")
+
+	conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		fmt.Println("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	c := pb.NewKVSeviceClient(conn)
+	ctx := context.Background()
+	// defer cancel()
+
+	fmt.Println("Create KVclient")
+
+	stream, err := c.Communicate(ctx)
+	if err != nil {
+		fmt.Println("Error getting bidirectinal strem")
+	}
+
+	sendMessageQueue := &MessageQueue{}
+	receiveMessageQueue := &MessageQueue{}
+
+	go sendLoop(stream, sendMessageQueue)
+
+	go receiveLoop(stream, receiveMessageQueue)
+
+	for true {
+
+		fmt.Println("Sending ping")
+
+		sendMessageQueue.Enqueue(&pb.ServerMessage{
+			Type: pb.MessageType_PING,
+			Content: &pb.ServerMessage_Ping{
+				Ping: &pb.PingRequest{Hello: 1},
+			},
+		})
+
+		log.Printf("Server Queue length %d", len(sendMessageQueue.messages))
+
+		time.Sleep(5000 * time.Millisecond)
 
 	}
 
