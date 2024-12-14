@@ -145,6 +145,8 @@ func CallGrpcServerv2(hostport string) {
 
 		go receiveLoop(stream, receiveMessageQueue, stopChan)
 
+		go pingLoop(sendMessageQueue, stopChan)
+
 		<-stopChan
 		log.Println("Stopping message processing due to stream error")
 		stream.CloseSend()
@@ -153,23 +155,6 @@ func CallGrpcServerv2(hostport string) {
 		time.Sleep(5 * time.Second)
 
 	}
-
-	/* for true {
-
-		fmt.Println("Sending ping")
-
-		sendMessageQueue.Enqueue(&pb.ServerMessage{
-			Type: pb.MessageType_PING,
-			Content: &pb.ServerMessage_Ping{
-				Ping: &pb.PingRequest{Hello: 1},
-			},
-		})
-
-		log.Printf("Server Queue length %d", len(sendMessageQueue.messages))
-
-		time.Sleep(5000 * time.Millisecond)
-
-	} */
 
 }
 
@@ -184,18 +169,18 @@ func sendLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue, 
 			return
 
 		default:
-			/* msg := messageQueue.Dequeue()
+			msg := messageQueue.Dequeue()
 			if msg == nil {
 				time.Sleep(1 * time.Second) // Wait before checking again
 				continue
-			} */
+			}
 
-			msg := &pb.ServerMessage{
+			/* msg := &pb.ServerMessage{
 				Type: pb.MessageType_PING,
 				Content: &pb.ServerMessage_Ping{
 					Ping: &pb.PingRequest{Hello: 1},
 				},
-			}
+			} */
 
 			log.Printf("Dequed Sending message of type: %v", msg.Type)
 			err := stream.Send(msg)
@@ -241,51 +226,33 @@ func receiveLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueu
 
 }
 
-/*
-func CallGrpcServerv3(hostport string) {
+func pingLoop(sendMessageQueue *MessageQueue, stopChan chan struct{}) {
 
-	fmt.Println(" Calling grpc server")
+	for {
 
-	conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		fmt.Println("did not connect: %v", err)
-	}
-	defer conn.Close()
+		select {
 
-	c := pb.NewKVSeviceClient(conn)
-	ctx := context.Background()
-	// defer cancel()
+		case <-stopChan:
+			log.Println("Stopping send goroutine ..")
+			return
 
-	fmt.Println("Create KVclient")
+		default:
 
-	stream, err := c.Communicate(ctx)
-	if err != nil {
-		fmt.Println("Error getting bidirectinal strem")
-	}
+			msg := &pb.ServerMessage{
+				Type: pb.MessageType_PING,
+				Content: &pb.ServerMessage_Ping{
+					Ping: &pb.PingRequest{Hello: 1},
+				},
+			}
 
-	sendMessageQueue := &MessageQueue{}
-	receiveMessageQueue := &MessageQueue{}
+			sendMessageQueue.Enqueue(msg)
 
-	go sendLoop(stream, sendMessageQueue)
+			log.Printf("Server Queue length %d", len(sendMessageQueue.messages))
 
-	go receiveLoop(stream, receiveMessageQueue)
+		}
 
-	for true {
-
-		fmt.Println("Sending ping")
-
-		sendMessageQueue.Enqueue(&pb.ServerMessage{
-			Type: pb.MessageType_PING,
-			Content: &pb.ServerMessage_Ping{
-				Ping: &pb.PingRequest{Hello: 1},
-			},
-		})
-
-		log.Printf("Server Queue length %d", len(sendMessageQueue.messages))
-
-		time.Sleep(5000 * time.Millisecond)
+		time.Sleep(5 * time.Second)
 
 	}
 
 }
-*/
