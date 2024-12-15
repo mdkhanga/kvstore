@@ -10,7 +10,9 @@ import (
 
 	pb "github.com/mdkhanga/kvstore/kvmessages"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	peer "google.golang.org/grpc/peer"
+	status "google.golang.org/grpc/status"
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -58,7 +60,7 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 
 	messageQueue := &MessageQueue{}
 
-	go func() {
+	/* go func() {
 		for {
 			in, err := stream.Recv()
 			if err != nil {
@@ -72,10 +74,25 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 			messageQueue.Enqueue(in)
 			log.Printf("Server Queue length %d", len(messageQueue.messages))
 		}
-	}()
+	}() */
+
+	stopChan := make(chan struct{})
+
+	var once sync.Once
+
+	// Function to safely close the stopChan
+	closeStopChan := func() {
+		once.Do(func() {
+			close(stopChan)
+		})
+	}
+
+	go receiveLoop(stream, messageQueue, stopChan, closeStopChan)
+
+	go sendLoop(stream, messageQueue, stopChan, closeStopChan)
 
 	// Goroutine to process the message queue and send responses as needed
-	go func() {
+	/* go func() {
 		for {
 			msg := messageQueue.Dequeue()
 			if msg == nil {
@@ -109,10 +126,15 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 			}
 
 		}
-	}()
+	}() */
+
+	<-stopChan
+	log.Println("Stopping message processing due to stream error")
+
+	return nil
 
 	// Block main goroutine to keep stream open
-	select {}
+	// select {}
 }
 
 func StartGrpcServer(portPtr *string) {
@@ -129,4 +151,97 @@ func StartGrpcServer(portPtr *string) {
 		log.Fatalf("failed to serve: %v", err)
 	}
 
+}
+
+func receiveLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueue, stopChan chan struct{}, closeStopChan func()) {
+
+	ctx := stream.Context()
+
+	for {
+
+		select {
+
+		case <-ctx.Done():
+			log.Println("Client disconnected or context canceled (receiver)")
+			// close(stopChan)
+			closeStopChan()
+			return
+
+		default:
+			in, err := stream.Recv()
+			if err != nil {
+
+				code := status.Code(err)
+
+				if code == codes.Unavailable || code == codes.Canceled || code == codes.DeadlineExceeded {
+
+					log.Println("Unable to read from the stream. server seems unavailable")
+					close(stopChan)
+					return
+				}
+			}
+
+			log.Printf("Received message of type: %v", in.Type)
+			if in.Type == pb.MessageType_PING {
+				fmt.Println("Received Ping message from the stream ", in.GetPing().Hello)
+
+				messageQueue.Enqueue(in)
+				log.Printf("Server Queue length %d", len(messageQueue.messages))
+			}
+
+		}
+
+	}
+
+}
+
+func sendLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueue, stopChan chan struct{}, closeStopChan func()) {
+
+	ctx := stream.Context()
+
+	for {
+		select {
+		case <-ctx.Done(): // Client disconnected or context canceled
+			log.Println("Client disconnected or context canceled (sender)")
+			// close(stopChan)
+			closeStopChan()
+			return
+		case <-stopChan: // Stop signal received
+			log.Println("Stop signal received for sender goroutine")
+			return
+		default:
+			// Send a message to the client (dummy example message)
+
+			msg := messageQueue.Dequeue()
+			if msg == nil {
+				time.Sleep(1 * time.Second) // Wait before checking again
+				continue
+			}
+
+			// Process each message type and decide what to send
+			var response *pb.ServerMessage
+			switch msg.Type {
+			case pb.MessageType_PING:
+				response = &pb.ServerMessage{
+					Type: pb.MessageType_PING_RESPONSE,
+					Content: &pb.ServerMessage_PingResponse{
+						PingResponse: &pb.PingResponse{Hello: 2},
+					},
+				}
+			case pb.MessageType_KEY_VALUE:
+				log.Printf("Processing KeyValueMessage")
+				// Handle KeyValueMessage
+			default:
+				log.Printf("Unknown message type received")
+			}
+
+			// Send the response if it was generated
+			if response != nil {
+				if err := stream.Send(response); err != nil {
+					log.Printf("Error sending message: %v", err)
+					return
+				}
+			}
+		}
+	}
 }
