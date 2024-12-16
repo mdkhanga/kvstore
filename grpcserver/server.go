@@ -58,23 +58,8 @@ func (q *MessageQueue) Dequeue() *pb.ServerMessage {
 
 func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 
-	messageQueue := &MessageQueue{}
-
-	/* go func() {
-		for {
-			in, err := stream.Recv()
-			if err != nil {
-				log.Printf("Error receiving message: %v", err)
-				return
-			}
-			log.Printf("Received message of type: %v", in.Type)
-			if in.Type == pb.MessageType_PING {
-				fmt.Println("Received Ping message from the stream ", in.GetPing().Hello)
-			}
-			messageQueue.Enqueue(in)
-			log.Printf("Server Queue length %d", len(messageQueue.messages))
-		}
-	}() */
+	sendMessageQueue := &MessageQueue{}
+	receiveMessageQueue := &MessageQueue{}
 
 	stopChan := make(chan struct{})
 
@@ -87,46 +72,11 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 		})
 	}
 
-	go receiveLoop(stream, messageQueue, stopChan, closeStopChan)
+	go receiveLoop(stream, receiveMessageQueue, stopChan, closeStopChan)
 
-	go sendLoop(stream, messageQueue, stopChan, closeStopChan)
+	go processMessageLoop(receiveMessageQueue, sendMessageQueue, stopChan, closeStopChan)
 
-	// Goroutine to process the message queue and send responses as needed
-	/* go func() {
-		for {
-			msg := messageQueue.Dequeue()
-			if msg == nil {
-				time.Sleep(1 * time.Second) // Wait before checking again
-				continue
-			}
-
-			// Process each message type and decide what to send
-			var response *pb.ServerMessage
-			switch msg.Type {
-			case pb.MessageType_PING:
-				response = &pb.ServerMessage{
-					Type: pb.MessageType_PING_RESPONSE,
-					Content: &pb.ServerMessage_PingResponse{
-						PingResponse: &pb.PingResponse{Hello: 2},
-					},
-				}
-			case pb.MessageType_KEY_VALUE:
-				log.Printf("Processing KeyValueMessage")
-				// Handle KeyValueMessage
-			default:
-				log.Printf("Unknown message type received")
-			}
-
-			// Send the response if it was generated
-			if response != nil {
-				if err := stream.Send(response); err != nil {
-					log.Printf("Error sending message: %v", err)
-					return
-				}
-			}
-
-		}
-	}() */
+	go sendLoop(stream, sendMessageQueue, stopChan, closeStopChan)
 
 	<-stopChan
 	log.Println("Stopping message processing due to stream error")
@@ -183,7 +133,7 @@ func receiveLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueu
 
 			log.Printf("Received message of type: %v", in.Type)
 			if in.Type == pb.MessageType_PING {
-				fmt.Println("Received Ping message from the stream ", in.GetPing().Hello)
+				log.Printf("Received Ping message from the stream %d %s %d", in.GetPing().Hello, in.GetPing().Hostname, in.GetPing().Port)
 
 				messageQueue.Enqueue(in)
 				log.Printf("Server Queue length %d", len(messageQueue.messages))
@@ -219,6 +169,53 @@ func sendLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueue, 
 			}
 
 			// Process each message type and decide what to send
+			/* var response *pb.ServerMessage
+			switch msg.Type {
+			case pb.MessageType_PING:
+				response = &pb.ServerMessage{
+					Type: pb.MessageType_PING_RESPONSE,
+					Content: &pb.ServerMessage_PingResponse{
+						PingResponse: &pb.PingResponse{Hello: 2},
+					},
+				}
+			case pb.MessageType_KEY_VALUE:
+				log.Printf("Processing KeyValueMessage")
+				// Handle KeyValueMessage
+			default:
+				log.Printf("Unknown message type received")
+			} */
+
+			// Send the response if it was generated
+			// if response != nil {
+			if err := stream.Send(msg); err != nil {
+				log.Printf("Error sending message: %v", err)
+
+				closeStopChan()
+				return
+			}
+			// }
+		}
+	}
+}
+
+func processMessageLoop(receiveMessageQueue *MessageQueue, sendMessageQueue *MessageQueue, stopChan chan struct{}, closeStopChan func()) {
+
+	for {
+
+		select {
+
+		case <-stopChan:
+			log.Println("Stop signal received for processing goroutine")
+			return
+
+		default:
+
+			msg := receiveMessageQueue.Dequeue()
+			if msg == nil {
+				time.Sleep(1 * time.Second) // Wait before checking again
+				continue
+			}
+
 			var response *pb.ServerMessage
 			switch msg.Type {
 			case pb.MessageType_PING:
@@ -235,13 +232,10 @@ func sendLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueue, 
 				log.Printf("Unknown message type received")
 			}
 
-			// Send the response if it was generated
-			if response != nil {
-				if err := stream.Send(response); err != nil {
-					log.Printf("Error sending message: %v", err)
-					return
-				}
-			}
+			sendMessageQueue.Enqueue(response)
+
 		}
+
 	}
+
 }

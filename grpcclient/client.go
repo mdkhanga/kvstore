@@ -175,13 +175,6 @@ func sendLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue, 
 				continue
 			}
 
-			/* msg := &pb.ServerMessage{
-				Type: pb.MessageType_PING,
-				Content: &pb.ServerMessage_Ping{
-					Ping: &pb.PingRequest{Hello: 1},
-				},
-			} */
-
 			log.Printf("Dequed Sending message of type: %v", msg.Type)
 			err := stream.Send(msg)
 			if err != nil {
@@ -241,7 +234,7 @@ func pingLoop(sendMessageQueue *MessageQueue, stopChan chan struct{}) {
 			msg := &pb.ServerMessage{
 				Type: pb.MessageType_PING,
 				Content: &pb.ServerMessage_Ping{
-					Ping: &pb.PingRequest{Hello: 1},
+					Ping: &pb.PingRequest{Hello: 1, Hostname: "localhost", Port: 8085},
 				},
 			}
 

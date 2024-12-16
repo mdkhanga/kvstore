@@ -14,6 +14,8 @@ service KVSevice {
 // The request message containing the user's name.
 message PingRequest {
   int32 hello = 1;
+  string hostname = 2;
+  int32 port = 3;
 }
 
 // The response message containing the greetings
