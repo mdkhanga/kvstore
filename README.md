@@ -1,5 +1,5 @@
-# kvstore
-kvstore implementation of a key value store. 
+# DynamoGo
+A distributed kvstore implementation of a key value store. 
 
 The inspiration comes from the Amazon Dynamo paper.  
 https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
