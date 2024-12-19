@@ -4,21 +4,33 @@ import (
 	m "github.com/mdkhanga/kvstore/models"
 )
 
-var clusterMap map[string]m.ClusterMember
+type cluster struct {
+	clusterMap map[string]m.ClusterMember
+}
 
-func AddToCluster(Hostname string, port int32) error {
+type ICluster interface {
+	AddToCluster(Hostname string, port int32) error
+	RemoveFromCluster(Hostname string, port int32) error
+	ListCluster() ([]m.ClusterMember, error)
+}
+
+func (c *cluster) AddToCluster(Hostname string, port int32) error {
 
 	return nil
 }
 
-func RemoveFromCluster(Hostname string, port int32) error {
+func (c *cluster) RemoveFromCluster(Hostname string, port int32) error {
 
 	return nil
 }
 
-func ListCluster() ([]m.ClusterMember, error) {
+func (c *cluster) ListCluster() ([]m.ClusterMember, error) {
 
 	var members []m.ClusterMember
 
 	return members, nil
+}
+
+func New() *cluster {
+	return &cluster{}
 }
