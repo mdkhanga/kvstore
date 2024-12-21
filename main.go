@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/mdkhanga/kvstore/grpcserver"
 	m "github.com/mdkhanga/kvstore/models"
@@ -13,6 +12,7 @@ import (
 	client "github.com/mdkhanga/kvstore/grpcclient"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mdkhanga/kvstore/logger"
 )
 
 var kvMap map[string]string
@@ -22,21 +22,19 @@ var (
 )
 
 func main() {
-	fmt.Println("Welcome to key value store")
 
-	argsWithProg := os.Args
+	Logger := logger.New()
 
-	fmt.Println(argsWithProg)
-	for i := 0; i < len(argsWithProg); i++ {
-		fmt.Println(argsWithProg[i])
-	}
+	Logger.Log.Info().Msg("Welcome to key value store")
 
 	portPtr := flag.String("p", "8081", "tcp port to listenon")
 	seed := flag.String("seed", "", "ip of server to connect to")
 	httpPort := flag.String("h", "8080", "http port to listenon")
 
 	flag.Parse()
-	fmt.Println("Going to listen on port ", *portPtr)
+	// fmt.Println("Going to listen on port ", *portPtr)
+	Logger.Log.Info().Str("Going to listen on port ", *portPtr)
+
 	fmt.Println("Seed to connect to ", *seed)
 	fmt.Println("Going to listen on http port ", *httpPort)
 

@@ -7,10 +7,14 @@ import (
 )
 
 type Logger struct {
-	logger zerolog.Logger
+	Log zerolog.Logger
 }
 
 func New() *Logger {
 	l := zerolog.New(os.Stdout)
-	return &Logger{logger: l}
+	return &Logger{Log: l}
+}
+
+func (log *Logger) Info(msg string) {
+	log.Log.Info().Msg(msg)
 }
