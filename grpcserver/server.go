@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+
 	"net"
 	"sync"
 	"time"
 
 	pb "github.com/mdkhanga/kvstore/kvmessages"
+	"github.com/mdkhanga/kvstore/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	peer "google.golang.org/grpc/peer"
@@ -20,9 +22,13 @@ type Server struct {
 	pb.UnimplementedKVSeviceServer
 }
 
+var (
+	Log = logger.WithComponent("grpcserver").Log
+)
+
 // SayHello implements helloworld.GreeterServer
 func (s *Server) Ping(ctx context.Context, in *pb.PingRequest) (*pb.PingResponse, error) {
-	fmt.Println("Received", in.GetHello())
+	Log.Info().Int32("Received", in.GetHello()).Send()
 	peerInfo, ok := peer.FromContext(ctx)
 	if ok {
 		fmt.Println("Client Address", peerInfo.Addr.String())
@@ -168,32 +174,13 @@ func sendLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueue, 
 				continue
 			}
 
-			// Process each message type and decide what to send
-			/* var response *pb.ServerMessage
-			switch msg.Type {
-			case pb.MessageType_PING:
-				response = &pb.ServerMessage{
-					Type: pb.MessageType_PING_RESPONSE,
-					Content: &pb.ServerMessage_PingResponse{
-						PingResponse: &pb.PingResponse{Hello: 2},
-					},
-				}
-			case pb.MessageType_KEY_VALUE:
-				log.Printf("Processing KeyValueMessage")
-				// Handle KeyValueMessage
-			default:
-				log.Printf("Unknown message type received")
-			} */
-
-			// Send the response if it was generated
-			// if response != nil {
 			if err := stream.Send(msg); err != nil {
 				log.Printf("Error sending message: %v", err)
 
 				closeStopChan()
 				return
 			}
-			// }
+
 		}
 	}
 }
