@@ -8,7 +8,6 @@ import (
 	"github.com/mdkhanga/kvstore/grpcserver"
 	m "github.com/mdkhanga/kvstore/models"
 
-	// client "github.com/mdkhanga/kvstore/tcpclient"
 	client "github.com/mdkhanga/kvstore/grpcclient"
 
 	"github.com/gin-gonic/gin"
@@ -32,11 +31,11 @@ func main() {
 	httpPort := flag.String("h", "8080", "http port to listenon")
 
 	flag.Parse()
-	// fmt.Println("Going to listen on port ", *portPtr)
+
 	Logger.Log.Info().Str("Going to listen on port ", *portPtr)
 
-	fmt.Println("Seed to connect to ", *seed)
-	fmt.Println("Going to listen on http port ", *httpPort)
+	Logger.Log.Debug().Str("Seed to connect to ", *seed)
+	Logger.Log.Info().Str("Going to listen on http port ", *httpPort)
 
 	kvMap = make(map[string]string)
 	kvMap["hello"] = "world"
@@ -46,28 +45,9 @@ func main() {
 	router.GET("/kvstore/:key", getValue)
 	router.POST("/kvstore", setValue)
 
-	// go server.Listen(*portPtr)
-	/* lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *portPtr))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-
-	s := grpc.NewServer()
-	pb.RegisterKVSeviceServer(s, &grpcserver.Server{})
-	log.Printf("server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	} *
-
-	*/
-
 	go grpcserver.StartGrpcServer(portPtr)
 
 	if *seed != "" {
-		fmt.Println("mjjjjjj Seed is not nill", *seed)
-		// go client.CallServer(*seed)
-		// go client.CallGrpcServer(*seed)
 		go client.CallGrpcServerv2(*seed)
 	}
 
