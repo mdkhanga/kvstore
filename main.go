@@ -22,9 +22,9 @@ var (
 
 func main() {
 
-	Logger := logger.New()
+	Logger := logger.Globallogger.Log
 
-	Logger.Log.Info().Msg("Welcome to key value store")
+	Logger.Info().Msg("Welcome to key value store")
 
 	portPtr := flag.String("p", "8081", "tcp port to listenon")
 	seed := flag.String("seed", "", "ip of server to connect to")
@@ -32,10 +32,9 @@ func main() {
 
 	flag.Parse()
 
-	Logger.Log.Info().Str("Going to listen on port ", *portPtr)
-
-	Logger.Log.Debug().Str("Seed to connect to ", *seed)
-	Logger.Log.Info().Str("Going to listen on http port ", *httpPort)
+	Logger.Info().Str("Going to listen on port ", *portPtr)
+	Logger.Debug().Str("Seed to connect to ", *seed).Send()
+	Logger.Info().Str("Going to listen on http port ", *httpPort).Send()
 
 	kvMap = make(map[string]string)
 	kvMap["hello"] = "world"
