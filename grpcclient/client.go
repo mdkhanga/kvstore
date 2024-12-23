@@ -8,10 +8,15 @@ import (
 	"time"
 
 	pb "github.com/mdkhanga/kvstore/kvmessages"
+	"github.com/mdkhanga/kvstore/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	status "google.golang.org/grpc/status"
+)
+
+var (
+	Log = logger.WithComponent("grpcclient").Log
 )
 
 // Queue to hold incoming messages
@@ -41,11 +46,11 @@ func (q *MessageQueue) Dequeue() *pb.ServerMessage {
 
 func CallGrpcServer(hostport string) {
 
-	fmt.Println(" Calling grpc server")
+	Log.Info().Msg(" Calling grpc server")
 
 	conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		fmt.Println("did not connect: %v", err)
+		Log.Info().AnErr("did not connect", err).Send()
 	}
 	defer conn.Close()
 
@@ -53,7 +58,7 @@ func CallGrpcServer(hostport string) {
 	ctx := context.Background()
 	// defer cancel()
 
-	fmt.Println("Create KVclient")
+	Log.Info().Msg("Create KVclient")
 
 	var resp *pb.PingResponse
 	resp, err = c.Ping(ctx, &pb.PingRequest{Hello: 1})

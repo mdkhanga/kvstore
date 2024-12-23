@@ -16,11 +16,11 @@ type cluster struct {
 	clusterMap map[string]m.ClusterMember
 }
 
-type ICluster interface {
+type IClusterService interface {
 	AddToCluster(Hostname string, port int32) error
 	RemoveFromCluster(Hostname string, port int32) error
 	ListCluster() ([]m.ClusterMember, error)
-	Exists(Hostnanme string, port int16) (bool, error)
+	Exists(Hostnanme string, port int32) (bool, error)
 }
 
 func (c *cluster) AddToCluster(hostname string, port int32) error {
@@ -71,7 +71,8 @@ func (c *cluster) Exists(hostname string, port int32) (bool, error) {
 	return true, nil
 }
 
-func New() *cluster {
+func New() IClusterService {
+
 	return &cluster{
 		mu:         sync.Mutex{},
 		clusterMap: make(map[string]m.ClusterMember),
