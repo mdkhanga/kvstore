@@ -7,5 +7,5 @@ type KeyValue struct {
 
 type ClusterMember struct {
 	Host string
-	Port int16
+	Port int32
 }

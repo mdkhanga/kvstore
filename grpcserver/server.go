@@ -3,12 +3,12 @@ package grpcserver
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"net"
 	"sync"
 	"time"
 
+	"github.com/mdkhanga/kvstore/cluster"
 	pb "github.com/mdkhanga/kvstore/kvmessages"
 	"github.com/mdkhanga/kvstore/logger"
 	"google.golang.org/grpc"
@@ -85,7 +85,7 @@ func (s *Server) Communicate(stream pb.KVSevice_CommunicateServer) error {
 	go sendLoop(stream, sendMessageQueue, stopChan, closeStopChan)
 
 	<-stopChan
-	log.Println("Stopping message processing due to stream error")
+	Log.Info().Msg("Stopping message processing due to stream error")
 
 	return nil
 
@@ -97,14 +97,14 @@ func StartGrpcServer(portPtr *string) {
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *portPtr))
 	if err != nil {
-		fmt.Println("failed to listen:", err)
+		Log.Error().AnErr("failed to listen:", err).Send()
 	}
 
 	s := grpc.NewServer()
 	pb.RegisterKVSeviceServer(s, &Server{})
-	fmt.Println("GRPC server listening at ", lis.Addr())
+	Log.Info().Any("GRPC server listening at ", lis.Addr()).Send()
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		Log.Error().AnErr("failed to serve: ", err).Send()
 	}
 
 }
@@ -118,7 +118,7 @@ func receiveLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueu
 		select {
 
 		case <-ctx.Done():
-			log.Println("Client disconnected or context canceled (receiver)")
+			Log.Info().Msg("Client disconnected or context canceled (receiver)")
 			// close(stopChan)
 			closeStopChan()
 			return
@@ -131,18 +131,21 @@ func receiveLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueu
 
 				if code == codes.Unavailable || code == codes.Canceled || code == codes.DeadlineExceeded {
 
-					log.Println("Unable to read from the stream. server seems unavailable")
+					Log.Info().Msg("Unable to read from the stream. server seems unavailable")
 					close(stopChan)
 					return
 				}
 			}
 
-			log.Printf("Received message of type: %v", in.Type)
+			Log.Info().Any("Received message of type:", in.Type).Send()
 			if in.Type == pb.MessageType_PING {
-				log.Printf("Received Ping message from the stream %d %s %d", in.GetPing().Hello, in.GetPing().Hostname, in.GetPing().Port)
+				Log.Info().Int32("hello", in.GetPing().Hello).
+					Str("Hostname", in.GetPing().Hostname).
+					Int32("port", in.GetPing().Port).
+					Msg("Received Ping message from the stream")
 
 				messageQueue.Enqueue(in)
-				log.Printf("Server Queue length %d", len(messageQueue.messages))
+				Log.Info().Int("Server Queue length", len(messageQueue.messages)).Send()
 			}
 
 		}
@@ -158,12 +161,12 @@ func sendLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueue, 
 	for {
 		select {
 		case <-ctx.Done(): // Client disconnected or context canceled
-			log.Println("Client disconnected or context canceled (sender)")
+			Log.Info().Msg("Client disconnected or context canceled (sender)")
 			// close(stopChan)
 			closeStopChan()
 			return
 		case <-stopChan: // Stop signal received
-			log.Println("Stop signal received for sender goroutine")
+			Log.Info().Msg("Stop signal received for sender goroutine")
 			return
 		default:
 			// Send a message to the client (dummy example message)
@@ -175,7 +178,7 @@ func sendLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueue, 
 			}
 
 			if err := stream.Send(msg); err != nil {
-				log.Printf("Error sending message: %v", err)
+				Log.Error().AnErr("Error sending message:", err)
 
 				closeStopChan()
 				return
@@ -192,7 +195,7 @@ func processMessageLoop(receiveMessageQueue *MessageQueue, sendMessageQueue *Mes
 		select {
 
 		case <-stopChan:
-			log.Println("Stop signal received for processing goroutine")
+			Log.Info().Msg("Stop signal received for processing goroutine")
 			return
 
 		default:
@@ -206,17 +209,35 @@ func processMessageLoop(receiveMessageQueue *MessageQueue, sendMessageQueue *Mes
 			var response *pb.ServerMessage
 			switch msg.Type {
 			case pb.MessageType_PING:
+
+				host := msg.GetPing().Hostname
+				port := msg.GetPing().Port
+
+				Log.Info().Int32("hello", msg.GetPing().Hello).
+					Str("Hostname", msg.GetPing().Hostname).
+					Int32("port", msg.GetPing().Port).
+					Msg("Received Ping message from the stream")
+
 				response = &pb.ServerMessage{
 					Type: pb.MessageType_PING_RESPONSE,
 					Content: &pb.ServerMessage_PingResponse{
 						PingResponse: &pb.PingResponse{Hello: 2},
 					},
 				}
+
+				if exists, _ := cluster.ClusterService.Exists(host, port); !exists {
+					cluster.ClusterService.AddToCluster(host, port)
+					Log.Info().Str("Hostname", host).
+						Int32("Port", port).
+						Msg("Added new server to Cluster")
+
+				}
+
 			case pb.MessageType_KEY_VALUE:
-				log.Printf("Processing KeyValueMessage")
+				Log.Info().Msg("Processing KeyValueMessage")
 				// Handle KeyValueMessage
 			default:
-				log.Printf("Unknown message type received")
+				Log.Info().Msg("Unknown message type received")
 			}
 
 			sendMessageQueue.Enqueue(response)

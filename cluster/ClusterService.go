@@ -7,18 +7,23 @@ import (
 	m "github.com/mdkhanga/kvstore/models"
 )
 
+var (
+	ClusterService = New()
+)
+
 type cluster struct {
 	mu         sync.Mutex
 	clusterMap map[string]m.ClusterMember
 }
 
 type ICluster interface {
-	AddToCluster(Hostname string, port int16) error
-	RemoveFromCluster(Hostname string, port int16) error
+	AddToCluster(Hostname string, port int32) error
+	RemoveFromCluster(Hostname string, port int32) error
 	ListCluster() ([]m.ClusterMember, error)
+	Exists(Hostnanme string, port int16) (bool, error)
 }
 
-func (c *cluster) AddToCluster(hostname string, port int16) error {
+func (c *cluster) AddToCluster(hostname string, port int32) error {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -58,6 +63,17 @@ func (c *cluster) ListCluster() ([]m.ClusterMember, error) {
 	return members, nil
 }
 
+func (c *cluster) Exists(hostname string, port int32) (bool, error) {
+	key := fmt.Sprintf("%s:%d", hostname, port)
+	if _, exists := c.clusterMap[key]; !exists {
+		return false, nil
+	}
+	return true, nil
+}
+
 func New() *cluster {
-	return &cluster{}
+	return &cluster{
+		mu:         sync.Mutex{},
+		clusterMap: make(map[string]m.ClusterMember),
+	}
 }
