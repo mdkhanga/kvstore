@@ -64,13 +64,13 @@ func CallGrpcServer(hostport string) {
 	resp, err = c.Ping(ctx, &pb.PingRequest{Hello: 1})
 
 	if err != nil {
-		fmt.Println("got error on ping: %v", err)
+		Log.Info().AnErr("got error on ping:", err)
 	}
 
-	fmt.Println("called ping")
+	Log.Info().Msg("called ping")
 
 	if resp.Hello == 1 {
-		fmt.Println("Get Ping Response")
+		Log.Info().Msg("Get Ping Response")
 	}
 
 	stream, err := c.Communicate(ctx)
