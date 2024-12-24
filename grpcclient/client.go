@@ -2,8 +2,6 @@ package grpclient
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -96,12 +94,12 @@ func CallGrpcServer(hostport string) {
 
 		in, err := stream.Recv()
 		if err != nil {
-			log.Printf("Error receiving message: %v", err)
+			Log.Info().AnErr("Error receiving message:", err)
 			return
 		}
-		log.Printf("Received message of type: %v", in.Type)
+		Log.Info().Any("Received message of type:", in.Type)
 		if in.Type == pb.MessageType_PING_RESPONSE {
-			fmt.Println("Received Ping message from the stream ", in.GetPingResponse().Hello)
+			Log.Info().Int32("Received Ping message from the stream ", in.GetPingResponse().Hello)
 		}
 
 		time.Sleep(1000 * time.Millisecond)
@@ -114,12 +112,12 @@ func CallGrpcServerv2(hostport string) {
 
 	for {
 
-		fmt.Println(" Calling grpc server")
+		Log.Debug().Msg(" Calling grpc server")
 
 		conn, err := grpc.NewClient(hostport, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			log.Printf("did not connect: %v", err)
-			log.Println("Sleep for 5 sec and try again")
+			Log.Error().AnErr("did not connect:", err).Send()
+			Log.Info().Msg("Sleep for 5 sec and try again")
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -129,13 +127,13 @@ func CallGrpcServerv2(hostport string) {
 		ctx := context.Background()
 		// defer cancel()
 
-		fmt.Println("Create KVclient")
+		Log.Debug().Msg("Create KVclient")
 
 		stream, err := c.Communicate(ctx)
 		if err != nil {
-			fmt.Println("Error getting bidirectinal strem")
+			Log.Error().Msg("Error getting bidirectinal strem")
 			conn.Close()
-			log.Println("Sleep for 5 sec and try again")
+			Log.Info().Msg("Sleep for 5 sec and try again")
 			time.Sleep(5 * time.Second)
 			continue
 
@@ -153,10 +151,10 @@ func CallGrpcServerv2(hostport string) {
 		go pingLoop(sendMessageQueue, stopChan)
 
 		<-stopChan
-		log.Println("Stopping message processing due to stream error")
+		Log.Info().Msg("Stopping message processing due to stream error")
 		stream.CloseSend()
 		conn.Close()
-		log.Println("Sleep for 5 sec and try again")
+		Log.Info().Msg("Sleep for 5 sec and try again")
 		time.Sleep(5 * time.Second)
 
 	}
@@ -170,7 +168,7 @@ func sendLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue, 
 		select {
 
 		case <-stopChan:
-			log.Println("Stopping send goroutine ..")
+			Log.Info().Msg("Stopping send goroutine ..")
 			return
 
 		default:
@@ -180,10 +178,10 @@ func sendLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueue, 
 				continue
 			}
 
-			log.Printf("Dequed Sending message of type: %v", msg.Type)
+			Log.Debug().Any("Dequed Sending message of type:", msg.Type)
 			err := stream.Send(msg)
 			if err != nil {
-				log.Printf("Error sending message: %v", err)
+				Log.Error().AnErr("Error sending message: ", err)
 				close(stopChan)
 				return
 			}
@@ -205,17 +203,17 @@ func receiveLoop(stream pb.KVSevice_CommunicateClient, messageQueue *MessageQueu
 
 			if code == codes.Unavailable || code == codes.Canceled || code == codes.DeadlineExceeded {
 
-				log.Println("Unable to read from the stream. server seems unavailable")
+				Log.Error().Msg("Unable to read from the stream. server seems unavailable")
 				close(stopChan)
 				return
 
 			}
 
 		}
-		log.Printf("Received message of type: %v", msg.Type)
+		Log.Info().Any("Received message of type:", msg.Type).Send()
 
 		if msg.Type == pb.MessageType_PING_RESPONSE {
-			fmt.Println("Received Ping message from the stream ", msg.GetPingResponse().Hello)
+			Log.Info().Int32("Received Ping message from the stream ", msg.GetPingResponse().Hello)
 		}
 
 		// For now do nothing with the msg
@@ -231,7 +229,7 @@ func pingLoop(sendMessageQueue *MessageQueue, stopChan chan struct{}) {
 		select {
 
 		case <-stopChan:
-			log.Println("Stopping send goroutine ..")
+			Log.Info().Msg("Stopping send goroutine ..")
 			return
 
 		default:
@@ -245,7 +243,7 @@ func pingLoop(sendMessageQueue *MessageQueue, stopChan chan struct{}) {
 
 			sendMessageQueue.Enqueue(msg)
 
-			log.Printf("Server Queue length %d", len(sendMessageQueue.messages))
+			Log.Info().Int("Server Queue length", len(sendMessageQueue.messages)).Send()
 
 		}
 
