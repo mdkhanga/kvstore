@@ -132,7 +132,7 @@ func receiveLoop(stream pb.KVSevice_CommunicateServer, messageQueue *MessageQueu
 				if code == codes.Unavailable || code == codes.Canceled || code == codes.DeadlineExceeded {
 
 					Log.Info().Msg("Unable to read from the stream. server seems unavailable")
-					close(stopChan)
+					closeStopChan()
 					return
 				}
 			}
