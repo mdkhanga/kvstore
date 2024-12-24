@@ -75,13 +75,13 @@ func CallGrpcServer(hostport string) {
 
 	stream, err := c.Communicate(ctx)
 	if err != nil {
-		fmt.Println("Error getting bidirectinal strem")
+		Log.Info().Msg("Error getting bidirectinal strem")
 		return
 	}
 
 	for true {
 
-		fmt.Println("Sending ping")
+		Log.Info().Msg("Sending ping")
 
 		err := stream.Send(&pb.ServerMessage{
 			Type: pb.MessageType_PING,
@@ -90,7 +90,7 @@ func CallGrpcServer(hostport string) {
 			},
 		})
 		if err != nil {
-			fmt.Println("Error sending Ping message: %v", err)
+			Log.Info().AnErr("Error sending Ping message:", err).Send()
 			return
 		}
 
